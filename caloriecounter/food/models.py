@@ -7,6 +7,8 @@ from django.utils.translation import ugettext as _
 
 # Units like g, ml etc.
 class Unit(models.Model):
+    class Meta:
+        ordering = ['-is_base', '-is_constant', 'base_unit_multiplier']
     name = models.TextField(verbose_name=_('name'), help_text=_('i.e. gram'), unique=True)
     _name_plural = models.TextField(verbose_name=_('plural name'),
                                     help_text=_('i.e. grams. Leave empty to use a programmatically set plural'),
