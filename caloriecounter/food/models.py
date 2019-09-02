@@ -111,9 +111,15 @@ class FoodGroup(models.Model):
 
 # Foodproducts like broccoli, butter, etc.
 class FoodProduct(models.Model):
+    class Meta:
+        indexes = [
+            models.Index(fields=['full_name']),
+        ]
 
     full_name = models.TextField(verbose_name=_('full name'), null=False, blank=False)
     display_name = models.TextField(verbose_name=_('display name'), null=False, blank=False)
+
+    food_source = models.TextField(null=True, blank=True)
 
     default_unit = models.ForeignKey(verbose_name=_('default unit'),
                                      to=Unit,
@@ -165,9 +171,15 @@ class FoodProduct(models.Model):
 
 # Nutrients like Energy, Protein etc.
 class Nutrient(models.Model):
+    class Meta:
+        ordering = ['-rank']
+        pass
+
     name = models.TextField(verbose_name=_('name'), null=False, blank=False, unique=True)
 
     unit = models.ForeignKey(verbose_name=_('unit'), to=Unit, on_delete=models.SET_NULL, null=True)
+
+    rank = models.IntegerField(verbose_name=_('rank'), default=-1)
 
     def __str__(self):
         return '{0} of {1}'.format(self.unit, self.name)
@@ -177,6 +189,11 @@ class Nutrient(models.Model):
 class FoodProductNutrient(models.Model):
     class Meta:
         unique_together = [('product', 'nutrient'),]
+        ordering = ['-nutrient__rank']
+        indexes = [
+            models.Index(fields=['product', 'nutrient']),
+        ]
+        pass
 
     product = models.ForeignKey(verbose_name=_('product'), to=FoodProduct, on_delete=models.CASCADE)
     nutrient = models.ForeignKey(verbose_name=('nutrient'), to=Nutrient, on_delete=models.CASCADE)
