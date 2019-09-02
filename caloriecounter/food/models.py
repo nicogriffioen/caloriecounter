@@ -118,6 +118,8 @@ class FoodProduct(models.Model):
             models.Index(fields=['full_name']),
         ]
 
+        ordering=['full_name']
+
     full_name = models.TextField(verbose_name=_('full name'), null=False, blank=False)
     display_name = models.TextField(verbose_name=_('display name'), null=False, blank=False)
 
@@ -168,7 +170,10 @@ class FoodProduct(models.Model):
         raise ValueError('Unit "{0}" is not a valid unit for product "{1}"'.format(unit, self))
 
     def __str__(self):
-        return self.display_name
+        if self.display_name and not self.display_name == '':
+            return self.display_name
+        else:
+            return self.full_name
 
 
 # Nutrients like Energy, Protein etc.

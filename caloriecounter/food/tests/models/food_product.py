@@ -54,6 +54,13 @@ class BaseTest(TestCase):
                               food_group=self.food_group)
         self.product.save()
 
+        self.product_no_display_name = FoodProduct(full_name='Mushrooms (portobello,raw)',
+                              display_name='Portobello mushrooms',
+                              default_quantity=15,
+                              default_unit=self.g,
+                              food_group=self.food_group)
+        self.product_no_display_name.save()
+
         self.food_product_nutrient_fat = FoodProductNutrient(product=self.product, nutrient=self.fat, quantity=4)
         self.food_product_nutrient_fat.save()
 
@@ -84,6 +91,9 @@ class FoodProductTest(BaseTest):
 
     def test_to_string(self):
         self.assertEqual(str(self.product), 'White mushrooms')
+
+        self.product_no_display_name.display_name = ''
+        self.assertEqual(str(self.product_no_display_name), 'Mushrooms (portobello,raw)')
 
 
     # Assert:
