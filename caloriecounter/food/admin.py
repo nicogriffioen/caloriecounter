@@ -2,10 +2,6 @@ from django.contrib import admin
 
 from .models import *
 
-#class TeachSubjectInline(admin.TabularInline):
-#    model = TeachSubject
-#    extra = 2 # how many rows to show
-
 
 class UnitAdmin(admin.ModelAdmin):
     search_fields = ['name', 'short_name']
@@ -44,9 +40,6 @@ class FoodProductAdmin(admin.ModelAdmin):
         return '\n'.join(nutrients)
 
     get_nutrients.short_description = 'Nutrients (per 100)'
-
-
-
 
 
 admin.site.register(Unit, UnitAdmin)
