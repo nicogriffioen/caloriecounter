@@ -28,7 +28,9 @@ class FoodProductUnitInlinAdmin(admin.TabularInline):
 
 
 class FoodProductAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'default_unit', 'get_nutrients')
+    list_display = ('full_name', 'food_source', 'food_group', 'default_unit')
+    list_filter = ('food_source', 'food_group')
+    search_fields = ('full_name', )
     inlines = (FoodProductUnitInlinAdmin, FoodProductNutrientInlineAdmin)
 
     def get_nutrients(self, obj):
