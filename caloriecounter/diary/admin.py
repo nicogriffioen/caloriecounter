@@ -12,3 +12,4 @@ class DiaryEntryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(DiaryEntry, DiaryEntryAdmin)
+

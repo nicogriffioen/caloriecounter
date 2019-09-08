@@ -83,14 +83,14 @@ class Unit(models.Model):
     def clean(self, *args, **kwargs):
         errors = []
         if self.is_base and self.parent:
-            errors.append(_('Unit can not both be a base unit and have a parent defined.'))
+            errors.append(ValidationError(_('Unit can not both be a base unit and have a parent defined.'), code='unit_both_base_and_child'))
 
         if not self.is_constant and self.is_base:
-            errors.append(_('Base units must be constant.'))
+            errors.append(ValidationError(_('Base units must be constant.'), code='base_unit_not_constant'))
             pass
 
         if not self.is_base and not self.children.count() == 0:
-            errors.append(_('Parent units must be base units.'))
+            errors.append(ValidationError(_('Parent units must be base units.'), code='parent_unit_not_base'))
 
         if len(errors) > 0:
             raise ValidationError({
@@ -147,18 +147,22 @@ class FoodProduct(models.Model):
     units = models.ManyToManyField(verbose_name=_('units'), to=Unit, through='FoodProductUnit', related_name='products')
 
     # Converts a quantity of a random unit to a quantity of the default unit, if possible.
-    def get_quantity_in_default_unit(self, unit: Unit, quantity):
-        # 1. Current unit is explicitly defined in the food_product_unit
+    def get_quantity_in_default_unit(self, quantity, unit: Unit = None):
+        # 1. Unit is None:
+        if unit is None:
+            return quantity * self.default_quantity
+
+        # 2. Current unit is explicitly defined in the food_product_unit
         food_product_unit = FoodProductUnit.objects.filter(product=self, unit=unit).first()
 
         if food_product_unit is not None:
             return food_product_unit.multiplier * quantity
 
-        # 2. Current unit is either the product's default unit or a child of the product's unit
+        # 3. Current unit is either the product's default unit or a child of the product's unit
         if unit.base_unit == self.default_unit:
             return unit.convert_to_base(quantity)
 
-        # 3. food_product_unit has a unit that is either the parent or a unit with a shared parent to current unit.
+        # 4. food_product_unit has a unit that is either the parent or a unit with a shared parent to current unit.
         food_product_unit = FoodProductUnit.objects.filter(product=self, unit__is_constant=True)\
             .filter(Q(unit__parent=unit.base_unit) | Q(unit = unit.base_unit))\
             .first()
@@ -239,19 +243,29 @@ class FoodProductUnit(models.Model):
         if self.unit.is_constant:
             try:
                 actual_conversion = self.unit.convert_to_unit(1, self.product.default_unit)
-                errors.append(_("""1 {0} is already defined as {1} {2}. 
+                errors.append(ValidationError(_("""1 %(unit)s is already defined as %(quantity)s %(unit2)s. 
                                                 You can only specify conversions 
                                                 of units that do not relate to each other, 
-                                                like grams and milliliters.""")
-                              .format(self.unit, actual_conversion, self.product.default_unit))
+                                                like grams and milliliters."""),
+                                              code='unit_already_defined_for_product',
+                                              params= {
+                                                  'unit' : self.unit,
+                                                  'quantity' : actual_conversion,
+                                                  'unit2' : self.product.default_unit
+                                              }))
             except ValueError:
                 pass
 
             try:
-                actual_conversion = self.product.get_quantity_in_default_unit(self.unit, 1)
-                errors.append(_("""1 {0} is already implicitly defined as {1} {2}. 
-                                                There is already a unit .""")
-                              .format(self.unit, actual_conversion, self.product.default_unit))
+                actual_conversion = self.product.get_quantity_in_default_unit(1, self.unit)
+                errors.append(ValidationError(_("""1 %(unit)s is already implicitly defined as %(quantity)s %(unit2)s. 
+                                                There is already a related unit defined on this product."""),
+                                              code='unit_already_implicitly_defined_for_product',
+                                              params= {
+                                                  'unit' : self.unit,
+                                                  'quantity' : actual_conversion,
+                                                  'unit2' : self.product.default_unit
+                                              }))
             except ValueError:
                 pass
 

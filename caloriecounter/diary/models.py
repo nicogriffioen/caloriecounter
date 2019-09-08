@@ -1,9 +1,11 @@
 from datetime import datetime
 
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import ugettext as _
 
-from caloriecounter.food.models import FoodProduct, Unit
+from caloriecounter.food.models import FoodProduct, Unit, FoodProductNutrient
 from caloriecounter.user.models import User
 
 
@@ -13,31 +15,103 @@ class DiaryEntry(models.Model):
         verbose_name = _('diary entry')
         verbose_name_plural = ('diary entries')
 
-    user = models.ForeignKey(to=User, on_delete=models.CASCADE, blank=False, editable=False)
+    user = models.ForeignKey(to=User, verbose_name=_('user'), on_delete=models.CASCADE, blank=False, editable=False)
 
-    created_on = models.DateTimeField(auto_now_add=True, editable=False)
+    created_on = models.DateTimeField(verbose_name=_('created on'), auto_now_add=True)
 
-    date = models.DateField(_("Entry Date"), blank=False, default=datetime.now)
-    time = models.TimeField(_("Entry Time"), blank=False, default=datetime.now)
+    date = models.DateField(_("entry Date"), blank=False, default=datetime.now)
+    time = models.TimeField(_("entry Time"), blank=False, default=datetime.now)
 
-    product = models.ForeignKey(to=FoodProduct, on_delete=models.CASCADE, blank=False)
-    quantity = models.FloatField()
-    unit = models.ForeignKey(to=Unit, on_delete=models.SET_NULL, null=True, blank=False)
+    product = models.ForeignKey(to=FoodProduct, on_delete=models.CASCADE, blank=False, null=False)
+    quantity = models.FloatField(verbose_name=_('quantity'), validators=[MinValueValidator(1),])
+    unit = models.ForeignKey(verbose_name=_('unit'), to=Unit, on_delete=models.SET_NULL, null=True, blank=True)
 
+    # Return a list of tuples containing the unit, and the quantity of each Nutrient for this diary entry.
+    # TODO: consider making this function more efficient in some way, because for every DiaryEntry,
+    # we have to query the product's nutrients.
     @property
     def nutritional_information(self):
-        return {'energy' : '20 cals'}
+        try:
+            self.product
+        except FoodProduct.DoesNotExist:
+            return []
+
+        quantity = self.quantity
+        list_of_nutrients = []
+        if self.unit:
+            try:
+                self.product.get_quantity_in_default_unit(self.quantity, self.unit)
+            except ValueError:
+                quantity = 0
+        else:
+            quantity = self.quantity * self.product.default_quantity
+
+        for product_nutrient in self.product.foodproductnutrient_set.all():
+            if quantity == 0:
+                list_of_nutrients.append((None, product_nutrient.nutrient))
+            else:
+                list_of_nutrients.append((quantity * (product_nutrient.quantity / 100), product_nutrient.nutrient))
 
 
 
-    def clean(self, *args, **kwargs):
-        super(DiaryEntry, self).clean(*args, **kwargs)
+        return list_of_nutrients
+
+    def clean(self):
+        super().clean()
+
+    def clean_fields(self, exclude=None):
+        super().clean_fields(exclude)
+
+        if exclude is None:
+            exclude = []
+
+        errors = {}
+
+        # Check if the DiaryEntry's unit is valid for this product.
+        if 'unit' not in exclude:
+            try:
+                self.product.get_quantity_in_default_unit(self.quantity, self.unit)
+
+            except ValueError:
+                errors['unit'] = ValidationError(_('Unknown unit "%(unit)s" for product "%(product)s"'),
+                                                 code='unit_does_not_match_product',
+                                                 params={
+                                                     'unit', self.unit,
+                                                     'product', self.product
+                                                 })
+            pass
+
+        if 'product' not in exclude:
+            if not self.unit and self.product.default_quantity == 0:
+                errors['product'] = ValidationError(_('Cannot convert %(quantity)s %(product)s to %(unit)s of %(product)s'),
+                                                    code='can_not_convert_quantity_of_product_to_unit',
+                                                    params={
+                                                        'quantity', self.quantity,
+                                                        'product', self.product,
+                                                        'unit', self.product.default_unit
+                                                    })
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
-        self.created_on = self.created_on.replace(tzinfo=None)
-        super(DiaryEntry, self).save(*args, **kwargs)
+        if not self.unit:
+            if self.product.default_quantity == 0:
+                raise ValidationError(_('Cannot convert %(quantity)s %(product)s to %(unit)s of %(product)s'),
+                                    code='can_not_convert_quantity_of_product_to_unit',
+                                    params={
+                                        'quantity' : self.quantity,
+                                        'product' : self.product,
+                                        'unit' : self.product.default_unit
+                                    })
+            # self.unit = self.product.default_unit
+            # self.quantity = self.quantity * self.product.default_quantity
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        string = '{quantity} {unit} of {product}'
+        if self.unit:
+            string = '{date} at {time} - {quantity} {unit} of {product}'
+        else:
+            string = '{date} at {time} - {quantity} {product}'
 
-        return string.format(quantity=self.quantity, unit=self.unit, product=self.product)
+        return string.format(quantity=self.quantity, unit=self.unit, product=self.product, time=self.time, date=self.date)

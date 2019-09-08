@@ -48,17 +48,26 @@ class BaseTest(TestCase):
 
         # Set up products
         self.product = FoodProduct(full_name='Mushrooms (white,raw)',
-                              display_name='White mushrooms',
-                              default_quantity=15,
-                              default_unit=self.g,
-                              food_group=self.food_group)
+                                   display_name='White mushrooms',
+                                   default_quantity=15,
+                                   default_unit=self.g,
+                                   food_group=self.food_group)
         self.product.save()
 
         self.product_no_display_name = FoodProduct(full_name='Mushrooms (portobello,raw)',
-                              display_name='Portobello mushrooms',
-                              default_quantity=15,
-                              default_unit=self.g,
-                              food_group=self.food_group)
+                                                   display_name='Portobello mushrooms',
+                                                   default_quantity=15,
+                                                   default_unit=self.g,
+                                                   food_group=self.food_group)
+        self.product_no_display_name.save()
+
+        self.product_no_default_quantity = FoodProduct(full_name='Mushrooms (portobello,cooked)',
+                                                       display_name='Portobello mushrooms',
+                                                       default_quantity=0,
+                                                       default_unit=self.g,
+                                                       food_group=self.food_group)
+        self.product_no_default_quantity.save()
+
         self.product_no_display_name.save()
 
         self.food_product_nutrient_fat = FoodProductNutrient(product=self.product, nutrient=self.fat, quantity=4)
@@ -67,6 +76,18 @@ class BaseTest(TestCase):
         self.food_product_nutrient_protein = FoodProductNutrient(product=self.product, nutrient=self.protein,
                                                                  quantity=6)
         self.food_product_nutrient_protein.save()
+
+        self.food_product_nutrient_no_default_quantity_fat = FoodProductNutrient(
+            product=self.product_no_default_quantity,
+            nutrient=self.fat,
+            quantity=8)
+        self.food_product_nutrient_no_default_quantity_fat.save()
+
+        self.food_product_nutrient_no_default_quantity_protein = FoodProductNutrient(
+            product=self.product_no_default_quantity,
+            nutrient=self.protein,
+            quantity=12)
+        self.food_product_nutrient_no_default_quantity_protein.save()
 
         self.food_product_unit_bowl = FoodProductUnit(product=self.product, unit=self.bowl, multiplier=200)
         self.food_product_unit_bowl.save()
@@ -105,27 +126,29 @@ class FoodProductTest(BaseTest):
     #    There are two conversions with parent ml for parent_with_cup (cup & bowl), but only cup is defined constant.
     #    This is the one to be used.
     # 6. It raises a ValueError for a unit for which no conversion exists.
+    # 7. It returns the correct value for no unit.
     def test_get_quantity_in_default_unit(self):
-        self.product
-
         # Assert 1.
-        self.assertEqual(self.product.get_quantity_in_default_unit(self.bowl, 3.5), 700)
+        self.assertEqual(self.product.get_quantity_in_default_unit(3.5, self.bowl, ), 700)
 
         # Assert 2.
-        self.assertEqual(self.product.get_quantity_in_default_unit(self.g, 34), 34)
+        self.assertEqual(self.product.get_quantity_in_default_unit(34, self.g), 34)
 
         # Assert 3.
-        self.assertEqual(self.product.get_quantity_in_default_unit(self.kg, 2.45), 2450)
+        self.assertEqual(self.product.get_quantity_in_default_unit(2.45, self.kg), 2450)
 
         # Assert 4.
-        self.assertEqual(self.product_with_cup.get_quantity_in_default_unit(self.l, 0.3), 600)
+        self.assertEqual(self.product_with_cup.get_quantity_in_default_unit(0.3, self.l), 600)
 
         # Assert 5.
-        self.assertEqual(self.product.get_quantity_in_default_unit(self.l, 0.3), 600)
+        self.assertEqual(self.product.get_quantity_in_default_unit(0.3, self.l), 600)
 
         # Assert 6.
         with self.assertRaises(ValueError) as raises_ve:
-            self.product.get_quantity_in_default_unit(self.handful, 4)
+            self.product.get_quantity_in_default_unit(4, self.handful)
+
+        # Assert 7.
+        self.assertEqual(self.product.get_quantity_in_default_unit(9), 135)
 
 
 class FoodProductNutrientTest(BaseTest):
