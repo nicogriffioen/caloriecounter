@@ -9,6 +9,7 @@ from caloriecounter.food.models import FoodProduct, Unit, FoodProductNutrient
 from caloriecounter.user.models import User
 
 
+
 class DiaryEntry(models.Model):
     class Meta:
         ordering = ['created_on']
@@ -73,39 +74,31 @@ class DiaryEntry(models.Model):
                 self.product.get_quantity_in_default_unit(self.quantity, self.unit)
 
             except ValueError:
-                errors['unit'] = ValidationError(_('Unknown unit "%(unit)s" for product "%(product)s"'),
-                                                 code='unit_does_not_match_product',
-                                                 params={
-                                                     'unit', self.unit,
-                                                     'product', self.product
-                                                 })
+                errors['unit'] = ValidationError(_('Unknown unit "{unit}" for product "{product}"')
+                                                 .format(unit = self.unit, product = self.product),
+                                                 code='unit_does_not_match_product')
             pass
 
         if 'product' not in exclude:
             if not self.unit and self.product.default_quantity == 0:
-                errors['product'] = ValidationError(_('Cannot convert %(quantity)s %(product)s to %(unit)s of %(product)s'),
-                                                    code='can_not_convert_quantity_of_product_to_unit',
-                                                    params={
-                                                        'quantity', self.quantity,
-                                                        'product', self.product,
-                                                        'unit', self.product.default_unit
-                                                    })
+                errors['product'] = ValidationError(
+                    _('Cannot convert {quantity} {product} to {unit} of {product}').format(
+                        quantity = self.quantity,
+                        product= self.product,
+                        unit = self.unit),
+                    code='can_not_convert_quantity_of_product_to_unit')
         if errors:
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         if not self.unit:
             if self.product.default_quantity == 0:
-                raise ValidationError(_('Cannot convert %(quantity)s %(product)s to %(unit)s of %(product)s'),
-                                    code='can_not_convert_quantity_of_product_to_unit',
-                                    params={
-                                        'quantity' : self.quantity,
-                                        'product' : self.product,
-                                        'unit' : self.product.default_unit
-                                    })
-            # self.unit = self.product.default_unit
-            # self.quantity = self.quantity * self.product.default_quantity
-
+                raise ValidationError(_('Cannot convert {quantity} {product} to {unit} of {product}')
+                                      .format(quantity = self.quantity,
+                                              product = self.product,
+                                              unit = self.unit),
+                                    code='can_not_convert_quantity_of_product_to_unit')
+            
         super().save(*args, **kwargs)
 
     def __str__(self):
