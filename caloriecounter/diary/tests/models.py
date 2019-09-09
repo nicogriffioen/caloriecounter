@@ -1,24 +1,23 @@
 import datetime
 
+from rest_framework.authtoken.models import Token
+
 from caloriecounter.diary.models import DiaryEntry
 from caloriecounter.food.tests import BaseTest, ValidationError, TestCase
 from caloriecounter.user.models import User
 
 
-class AppConfigTest(TestCase):
-
-    def test_app_config(self):
-        from caloriecounter.diary.apps import DiaryConfig
-        self.assertEquals(DiaryConfig.name, 'diary')
-
-
-class DiaryEntryTest(BaseTest):
-
+class DiaryEntryBaseTest(BaseTest):
     def setUp(self):
         super().setUp()
 
-        self.user = User.objects.create_user('calorieuser', 'test@calorie-counter.test', 'password123')
+        self.user = User.objects.create_user('calorieuser', 'password123')
         self.user.save()
+        self.user_token = Token.objects.get(user__username='calorieuser')
+
+        self.user_2 = User.objects.create_user('calorieuser2', 'password123')
+        self.user_2.save()
+        self.user_token_2 = Token.objects.get(user__username='calorieuser2')
 
         self.diary_entry = DiaryEntry.objects.create(user = self.user,
                                                      product=self.product,
@@ -28,15 +27,35 @@ class DiaryEntryTest(BaseTest):
                                                      unit=self.g)
         self.diary_entry.save()
 
+        self.diary_entry_2 = DiaryEntry.objects.create(user=self.user,
+                                                     product=self.product,
+                                                     date=datetime.date(2018, 3, 2),
+                                                     time=datetime.time(hour=21, minute=20),
+                                                     quantity=20,
+                                                     unit=self.g)
+        self.diary_entry_2.save()
+
+        self.diary_entry_user_2 = DiaryEntry.objects.create(user=self.user_2,
+                                                     product=self.product,
+                                                     date=datetime.date(2018, 3, 3),
+                                                     time=datetime.time(hour=21, minute=20),
+                                                     quantity=20,
+                                                     unit=self.g)
+        self.diary_entry_user_2.save()
+
+
+class DiaryEntryTest(DiaryEntryBaseTest):
     def test_string(self):
-        self.assertEqual(str(self.diary_entry), '2018-03-03 at 21:20:00 - {0} {1} of {2}'.format(20, self.g, self.product))
+        self.assertEqual(str(self.diary_entry), '2018-03-03 at 21:20:00 - {0} {1} of {2}'.format('20', self.g, self.product))
 
         self.diary_entry.unit = None
         self.assertEqual(str(self.diary_entry),
                          '2018-03-03 at 21:20:00 - {0} {1}'.format(20, self.product.display_name))
         pass
 
-    # Assert that a ValidationError is raised for a unit that can not be converted to the product's default unit.
+    # Assert:
+    # 1. A ValidationError is raised for a unit that can not be converted to the product's default unit.
+    # 2. No ValidationError is raised when unit is excluded from the clean method
     def test_product_quantity_unit_match(self):
         with self.assertRaises(ValidationError) as raises_ve:
             entry = DiaryEntry.objects.create(user=self.user,
@@ -47,8 +66,10 @@ class DiaryEntryTest(BaseTest):
                                               unit=self.handful)
 
             entry.full_clean()
-            entry.unit=self.bowl
-            entry.full_clean()
+
+        entry.full_clean(exclude=['unit'])
+        entry.unit=self.bowl
+        entry.full_clean()
 
     # Assert that a validation error is raised when adding DiaryEntry that has a negative quantity.
     def test_product_min_quantity(self):
@@ -61,7 +82,6 @@ class DiaryEntryTest(BaseTest):
                                               unit=self.g)
 
             entry.full_clean()
-            entry.save()
 
     # Assert that a product's default quantity is used
     # when adding a DiaryEntry with only quantity and product
@@ -78,7 +98,8 @@ class DiaryEntryTest(BaseTest):
 
     # Assert that a ValidationError is raised on the unit field
     # when adding a DiaryEntry with only quantity and product,
-    # where the product has no default_quantity.
+    # where the product has no default_quantity,
+    # and no ValidationError is raised when excluding the product field from the clean method
     def test_no_unit_no_default_quantity(self):
         with self.assertRaises(ValidationError) as raises_ve:
             entry = DiaryEntry.objects.create(user=self.user,
@@ -95,6 +116,8 @@ class DiaryEntryTest(BaseTest):
 
         with self.assertRaises(ValidationError) as raises_ve:
             entry.full_clean()
+
+        entry.full_clean(exclude=['product'])
 
         entry.product = self.product
         entry.full_clean()

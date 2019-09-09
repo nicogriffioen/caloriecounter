@@ -11,8 +11,7 @@ class BaseTest(TestCase):
     # Set up the test data. This is a pretty beefy method, for a good reason.
     # Realistic test data is pretty explicit and interlinked, and it's a hassle to re-initialize it for every test,
     # so it's better to do it properly one time.
-    # In the future, it's probably best to update this initialization code first.
-
+    # TODO: In the future, it's probably best to move this code to fixtures.
     def setUp(self):
 
         #Set up units
@@ -45,6 +44,9 @@ class BaseTest(TestCase):
         # Set up food groups
         self.food_group = FoodGroup(name='Vegetables')
         self.food_group.save()
+
+        self.food_group_2 = FoodGroup(name='Meat')
+        self.food_group_2.save()
 
         # Set up products
         self.product = FoodProduct(full_name='Mushrooms (white,raw)',

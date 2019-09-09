@@ -105,6 +105,9 @@ class Unit(models.Model):
 
 # Foodgroups like Dairy, Poultry etc.
 class FoodGroup(models.Model):
+    class Meta:
+        ordering = ['name']
+
     name = models.TextField(verbose_name=_('name'), blank=False)
 
     def __str__(self):
@@ -121,7 +124,7 @@ class FoodProduct(models.Model):
         ordering=['full_name']
 
     full_name = models.TextField(verbose_name=_('full name'), null=False, blank=False)
-    display_name = models.TextField(verbose_name=_('display name'), null=False, blank=False)
+    display_name = models.TextField(verbose_name=_('display name'), null=True, blank=False)
 
     food_source = models.TextField(null=True, blank=True)
 

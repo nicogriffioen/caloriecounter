@@ -1,3 +1,6 @@
 from django.test import TestCase
 
-# Create your tests here.
+
+class AppConfigTest(TestCase):
+    def test_config(self):
+        from .apps import UserConfig

@@ -9,12 +9,27 @@ from caloriecounter.food.models import FoodProduct, Unit, FoodProductNutrient
 from caloriecounter.user.models import User
 
 
+class DiaryEntryManager(models.Manager):
+    """
+    Since we're often performing calculations on DiaryEntries (Nutritional information, etc.),
+    this manager adds a prefetch for products, nutrients and units, to reduce overhead.
+    """
+    def get_queryset(self):
+        return super().get_queryset()\
+            .select_related('product',
+                            'unit',
+                            'product__default_unit')\
+            .prefetch_related('product__foodproductnutrient_set',
+                              'product__foodproductnutrient_set__nutrient')
+
 
 class DiaryEntry(models.Model):
     class Meta:
-        ordering = ['created_on']
+        ordering = ['-date', 'time']
         verbose_name = _('diary entry')
         verbose_name_plural = ('diary entries')
+
+    objects = DiaryEntryManager()
 
     user = models.ForeignKey(to=User, verbose_name=_('user'), on_delete=models.CASCADE, blank=False, editable=False)
 
@@ -24,12 +39,10 @@ class DiaryEntry(models.Model):
     time = models.TimeField(_("entry Time"), blank=False, default=datetime.now)
 
     product = models.ForeignKey(to=FoodProduct, on_delete=models.CASCADE, blank=False, null=False)
-    quantity = models.FloatField(verbose_name=_('quantity'), validators=[MinValueValidator(1),])
+    quantity = models.FloatField(verbose_name=_('quantity'), validators=[MinValueValidator(0),])
     unit = models.ForeignKey(verbose_name=_('unit'), to=Unit, on_delete=models.SET_NULL, null=True, blank=True)
 
     # Return a list of tuples containing the unit, and the quantity of each Nutrient for this diary entry.
-    # TODO: consider making this function more efficient in some way, because for every DiaryEntry,
-    # we have to query the product's nutrients.
     @property
     def nutritional_information(self):
         try:
@@ -85,7 +98,7 @@ class DiaryEntry(models.Model):
                     _('Cannot convert {quantity} {product} to {unit} of {product}').format(
                         quantity = self.quantity,
                         product= self.product,
-                        unit = self.unit),
+                        unit = self.product.default_unit),
                     code='can_not_convert_quantity_of_product_to_unit')
         if errors:
             raise ValidationError(errors)
@@ -93,12 +106,13 @@ class DiaryEntry(models.Model):
     def save(self, *args, **kwargs):
         if not self.unit:
             if self.product.default_quantity == 0:
+
                 raise ValidationError(_('Cannot convert {quantity} {product} to {unit} of {product}')
                                       .format(quantity = self.quantity,
                                               product = self.product,
-                                              unit = self.unit),
+                                              unit = self.product.default_unit),
                                     code='can_not_convert_quantity_of_product_to_unit')
-            
+
         super().save(*args, **kwargs)
 
     def __str__(self):
