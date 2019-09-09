@@ -102,13 +102,19 @@ class DiaryEntryTest(BaseTest):
 
     # Assert:
     # 1. Getting the nutritional information for a DiaryEntry contains the right number of results.
-    # 2. The nutritional information is correct.
+    # 2. The nutritional information is correct for the product's base_unit.
+    # 3. The nutritional information is correct for a child unit.
     def test_product_nutritional_information(self):
         # Assert 1.
         self.assertEqual(len(self.diary_entry.nutritional_information), 2)
 
         # Assert 2.
         self.assertEqual(self.diary_entry.nutritional_information[0][0], 0.8)
+
+        # Assert 3.
+        self.diary_entry.unit = self.kg
+        self.diary_entry.save()
+        self.assertEqual(self.diary_entry.nutritional_information[0][0], 800)
 
     # Assert:
     # 1. Getting the nutritional information for a DiaryEntry without a unit contains the right number of results.

@@ -41,7 +41,7 @@ class DiaryEntry(models.Model):
         list_of_nutrients = []
         if self.unit:
             try:
-                self.product.get_quantity_in_default_unit(self.quantity, self.unit)
+                quantity = self.product.get_quantity_in_default_unit(self.quantity, self.unit)
             except ValueError:
                 quantity = 0
         else:
