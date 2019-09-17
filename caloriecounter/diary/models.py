@@ -3,7 +3,7 @@ from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from caloriecounter.food.models import FoodProduct, Unit, FoodProductNutrient
 from caloriecounter.user.models import User
@@ -65,8 +65,6 @@ class DiaryEntry(models.Model):
                 list_of_nutrients.append((None, product_nutrient.nutrient))
             else:
                 list_of_nutrients.append((quantity * (product_nutrient.quantity / 100), product_nutrient.nutrient))
-
-
 
         return list_of_nutrients
 
