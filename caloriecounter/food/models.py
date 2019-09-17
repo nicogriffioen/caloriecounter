@@ -120,6 +120,8 @@ class FoodProduct(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['full_name']),
+            GinIndex(fields=['full_name']),
+            models.Index(fields=['food_source'])
         ]
 
         ordering=['full_name']
@@ -223,7 +225,7 @@ class FoodProductNutrient(models.Model):
 # Through model for nutrients per food product, containing the quantity,
 class FoodProductUnit(models.Model):
     class Meta:
-        unique_together = [('product', 'unit'),]
+        pass
 
     product = models.ForeignKey(verbose_name=_('product'), to=FoodProduct, on_delete=models.CASCADE)
 
@@ -236,6 +238,14 @@ class FoodProductUnit(models.Model):
                                    help_text=_("""Determines the base unit quantity of 1 of this unit, 
                                    i.e. 1 'glass' of milk is <multiplier> grams"""),
                                    validators=[MinValueValidator(0), ])
+
+    description = models.CharField(verbose_name=_('Portion description'), max_length=255, null=True, blank=True)
+
+    modifier = models.CharField(verbose_name=_('Portion modifier'), max_length=255, null=True, blank=True)
+
+
+
+
 
     def __str__(self):
         return '{0} of {1} ({2} {3})'.format(self.unit, self.product, self.multiplier, self.product.default_unit)
@@ -279,3 +289,14 @@ class FoodProductUnit(models.Model):
             })
 
         super(FoodProductUnit, self).clean(*args, **kwargs)
+
+
+class FoodProductSearchCacheItem(models.Model):
+    class Meta:
+        indexes = [
+            models.Index(fields=['text']),
+        ]
+
+    text = models.CharField(verbose_name=_('Food product'), max_length=255, unique=True)
+
+    food_product = models.ForeignKey(verbose_name=_('Food product'), to=FoodProduct, on_delete=models.CASCADE)

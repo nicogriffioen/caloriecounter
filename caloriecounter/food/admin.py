@@ -42,8 +42,17 @@ class FoodProductAdmin(admin.ModelAdmin):
     get_nutrients.short_description = 'Nutrients (per 100)'
 
 
+class FoodProductSearchCacheItemAdmin(admin.ModelAdmin):
+    search_fields = ['text']
+    list_display = ['text', 'food_product']
+    ordering = ['text']
+    autocomplete_fields = ['food_product',]
+
+
 admin.site.register(Unit, UnitAdmin)
 admin.site.register(Nutrient, NutrientAdmin)
 admin.site.register(FoodGroup, FoodGroupAdmin)
 admin.site.register(FoodProduct, FoodProductAdmin)
+admin.site.register(FoodProductSearchCacheItem, FoodProductSearchCacheItemAdmin)
+
 
