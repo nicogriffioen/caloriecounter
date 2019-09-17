@@ -19,8 +19,11 @@ from django.urls import path, include
 
 from caloriecounter.food.api.urls import urlpatterns as food_api_urls
 from caloriecounter.diary.api.urls import urlpatterns as diary_api_urls
+from caloriecounter.voice.api.urls import urlpatterns as voice_api_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include(food_api_urls + diary_api_urls)),
+    path('api/', include(food_api_urls +
+                         diary_api_urls +
+                         voice_api_urls)),
 ]
