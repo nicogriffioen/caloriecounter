@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.db import ProgrammingError
 
 
 class VoiceConfig(AppConfig):
@@ -12,3 +13,5 @@ class VoiceConfig(AppConfig):
                 VoiceSessionResponse.objects.get(code=response[0])
             except VoiceSessionResponse.DoesNotExist as e:
                 VoiceSessionResponse.objects.create(code=response[0], responses=response[1])
+            except ProgrammingError:
+                pass
