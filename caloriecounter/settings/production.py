@@ -8,7 +8,7 @@ DEBUG = False
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 SITE_URL = "https://www.nicoscaloriecounter.tk"
-ALLOWED_HOSTS = ['nicoscaloriecounter.tk']
+ALLOWED_HOSTS = ['www.nicoscaloriecounter.tk','nicoscaloriecounter.tk']
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
