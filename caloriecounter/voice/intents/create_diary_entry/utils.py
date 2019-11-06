@@ -12,7 +12,7 @@ def get_unique_matches_for_food_and_quantities(doc):
     # pattern = [{"LOWER": "is"}, {"OP": "*", "IS_PUNCT": False}, {"LOWER": "example"}]
     patterns = []
 
-    # 2 grams of chicken breast or 2 hamburgers from McDonalds (TODO: Find a way to filter out from McDonalds)
+    # 2 grams of chicken breast or 2 hamburgers from McDonalds
     patterns.append([{"POS": "NUM"}, {"OP": "*", "POS": "ADJ"}, {"OP": "+", "POS": "NOUN"}, {"OP": "?", "POS": "ADP"},
                      {"OP": "*", "POS": "ADJ"}, {"OP": "*", "POS": "NOUN"}])
 

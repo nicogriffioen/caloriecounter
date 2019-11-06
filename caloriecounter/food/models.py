@@ -124,7 +124,7 @@ class FoodProduct(models.Model):
             models.Index(fields=['food_source'])
         ]
 
-        ordering=['full_name']
+        ordering = ['full_name']
 
     full_name = models.TextField(verbose_name=_('full name'), null=False, blank=False)
     display_name = models.TextField(verbose_name=_('display name'), null=True, blank=False)
@@ -242,10 +242,6 @@ class FoodProductUnit(models.Model):
     description = models.CharField(verbose_name=_('Portion description'), max_length=255, null=True, blank=True)
 
     modifier = models.CharField(verbose_name=_('Portion modifier'), max_length=255, null=True, blank=True)
-
-
-
-
 
     def __str__(self):
         return '{0} of {1} ({2} {3})'.format(self.unit, self.product, self.multiplier, self.product.default_unit)

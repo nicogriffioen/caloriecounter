@@ -119,4 +119,8 @@ class DiaryEntry(models.Model):
         else:
             string = '{date} at {time} - {quantity} {product}'
 
-        return string.format(quantity=self.quantity, unit=self.unit, product=self.product, time=self.time, date=self.date)
+        return string.format(quantity=self.quantity,
+                             unit=self.unit,
+                             product=self.product,
+                             time=self.time,
+                             date=self.date)

@@ -1,9 +1,13 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, pagination
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 
 from caloriecounter.food.api.serializers import FoodProductSerializer, NutrientSerializer, FoodGroupSerializer, \
     UnitSerializer
 from caloriecounter.food.models import FoodProduct, Nutrient, Unit, FoodGroup
+
+
+class LargePagination(pagination.PageNumberPagination):
+    page_size = 1000
 
 
 class FoodGroupViewSet(viewsets.GenericViewSet, ListModelMixin, RetrieveModelMixin):
@@ -12,6 +16,7 @@ class FoodGroupViewSet(viewsets.GenericViewSet, ListModelMixin, RetrieveModelMix
     """
     queryset = FoodGroup.objects.all()
     serializer_class = FoodGroupSerializer
+    pagination_class = LargePagination
 
 
 class FoodProductViewSet(viewsets.GenericViewSet, ListModelMixin, RetrieveModelMixin):
@@ -28,6 +33,7 @@ class NutrientViewSet(viewsets.GenericViewSet, ListModelMixin, RetrieveModelMixi
     """
     queryset = Nutrient.objects.all()
     serializer_class = NutrientSerializer
+    pagination_class = LargePagination
 
 
 class UnitViewSet(viewsets.GenericViewSet, ListModelMixin, RetrieveModelMixin):
@@ -36,3 +42,4 @@ class UnitViewSet(viewsets.GenericViewSet, ListModelMixin, RetrieveModelMixin):
     """
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
+    pagination_class = LargePagination
