@@ -17,7 +17,7 @@ def process_session(session : VoiceSession):
         # Extract the intent from the text, and perform the action that is linked to this intent.
         intent = utils.get_probable_intent(doc)
 
-        items = intent.perform_action(doc, session)
+        items = intent.perform(doc, session)
 
         # Save all voice session items from the conversation.
         for item in items:
