@@ -27,7 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 AUTH_USER_MODEL = 'user.User'
 
@@ -41,14 +40,16 @@ DEFAULT_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    'rest_framework',
     'django_filters',
+    'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 CUSTOM_APPS = [
     'caloriecounter.diary',
     'caloriecounter.food',
     'caloriecounter.user',
+    'caloriecounter.voice',
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_APPS + CUSTOM_APPS
@@ -82,18 +83,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'caloriecounter.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/2.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -132,12 +121,61 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-#Django REST Framework settings
+
+# Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        }
+    },
+    # 'loggers': {
+    #     'django.db.backends': {
+    #         'handlers': ['console'],
+    #         'level': 'DEBUG',
+    #     },
+    # }
+}
+
+
+# Django REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 
 }
 
+# Spacy configuration
+import spacy
+
+# load any spaCy models that are installed
+# This takes some time to load so doing it here and this should improve performance
+SUPPORTED_LANGUAGES = ['en']
+
+LANGUAGE_MODELS = {}
+
+for language in SUPPORTED_LANGUAGES:
+    try:
+        LANGUAGE_MODELS[language] = spacy.load(language)
+    except OSError:
+        print('Warning: model {} not found. Run python3 -m spacy download {} and try again.'.format(language,language))
+
+LANGUAGE_MODELS['en'] = spacy.load('en_core_web_sm')
+
+# this is used to display the language name
+LANGUAGE_MAPPING = {
+        'en': 'English',
+}
