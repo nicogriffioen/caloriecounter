@@ -1,0 +1,1 @@
+openapi-generator generate -i schema.yml -g swift5 -o ./open-api-client --library alamofire

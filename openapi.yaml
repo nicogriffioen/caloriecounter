@@ -1,0 +1,967 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 1.0.0
+paths:
+  /api/auth-token/:
+    post:
+      operationId: api_auth_token_create
+      description: ''
+      tags:
+      - api
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+        required: true
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+          description: ''
+  /api/diary_entry/:
+    get:
+      operationId: api_diary_entry_list
+      description: API endpoint that allows DiaryEntries to be viewed, and created.
+      parameters:
+      - name: date
+        required: false
+        in: query
+        description: date
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 123
+                  next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=4
+                  previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=2
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DiaryEntry'
+          description: ''
+    post:
+      operationId: api_diary_entry_create
+      description: API endpoint that allows DiaryEntries to be viewed, and created.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiaryEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DiaryEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DiaryEntry'
+        required: true
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiaryEntry'
+          description: ''
+  /api/diary_entry/{id}/:
+    get:
+      operationId: api_diary_entry_retrieve
+      description: API endpoint that allows DiaryEntries to be viewed, and created.
+      parameters:
+      - name: date
+        required: false
+        in: query
+        description: date
+        schema:
+          type: string
+          format: date
+      - name: id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiaryEntry'
+          description: ''
+    put:
+      operationId: api_diary_entry_update
+      description: API endpoint that allows DiaryEntries to be viewed, and created.
+      parameters:
+      - name: date
+        required: false
+        in: query
+        description: date
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiaryEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DiaryEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DiaryEntry'
+        required: true
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiaryEntry'
+          description: ''
+    patch:
+      operationId: api_diary_entry_partial_update
+      description: API endpoint that allows DiaryEntries to be viewed, and created.
+      parameters:
+      - name: date
+        required: false
+        in: query
+        description: date
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDiaryEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDiaryEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDiaryEntry'
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiaryEntry'
+          description: ''
+    delete:
+      operationId: api_diary_entry_destroy
+      description: API endpoint that allows DiaryEntries to be viewed, and created.
+      parameters:
+      - name: date
+        required: false
+        in: query
+        description: date
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/food_group/:
+    get:
+      operationId: api_food_group_list
+      description: API endpoint that allows FoodGroups to be viewed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 123
+                  next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=4
+                  previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=2
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FoodGroup'
+          description: ''
+  /api/food_group/{id}/:
+    get:
+      operationId: api_food_group_retrieve
+      description: API endpoint that allows FoodGroups to be viewed.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this food group.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoodGroup'
+          description: ''
+  /api/food_product/:
+    get:
+      operationId: api_food_product_list
+      description: API endpoint that allows FoodProducts to be viewed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 123
+                  next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=4
+                  previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=2
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FoodProduct'
+          description: ''
+  /api/food_product/{id}/:
+    get:
+      operationId: api_food_product_retrieve
+      description: API endpoint that allows FoodProducts to be viewed.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this food product.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoodProduct'
+          description: ''
+  /api/nutrient/:
+    get:
+      operationId: api_nutrient_list
+      description: API endpoint that allows Nutrients to be viewed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 123
+                  next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=4
+                  previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=2
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Nutrient'
+          description: ''
+  /api/nutrient/{id}/:
+    get:
+      operationId: api_nutrient_retrieve
+      description: API endpoint that allows Nutrients to be viewed.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this nutrient.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nutrient'
+          description: ''
+  /api/openapi/:
+    get:
+      operationId: api_openapi_retrieve
+      description: 'OpenApi3 schema for this API. Format can be selected via content
+        negotiation.
+
+
+        - YAML: application/vnd.oai.openapi
+
+        - JSON: application/vnd.oai.openapi+json'
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/unit/:
+    get:
+      operationId: api_unit_list
+      description: API endpoint that allows Units to be viewed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 123
+                  next:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=4
+                  previous:
+                    type: string
+                    nullable: true
+                    format: uri
+                    example: http://api.example.org/accounts/?page=2
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Unit'
+          description: ''
+  /api/unit/{id}/:
+    get:
+      operationId: api_unit_retrieve
+      description: API endpoint that allows Units to be viewed.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: A unique integer value identifying this unit.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unit'
+          description: ''
+  /api/voice_session/:
+    post:
+      operationId: api_voice_session_create
+      description: API endpoint that allows Sessions to be viewed and created.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceSession'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoiceSession'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoiceSession'
+        required: true
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSession'
+          description: ''
+  /api/voice_session/{id}/:
+    get:
+      operationId: api_voice_session_retrieve
+      description: API endpoint that allows Sessions to be viewed and created.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSession'
+          description: ''
+    put:
+      operationId: api_voice_session_update
+      description: API endpoint that allows Sessions to be viewed and created.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceSession'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoiceSession'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoiceSession'
+        required: true
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSession'
+          description: ''
+    patch:
+      operationId: api_voice_session_partial_update
+      description: API endpoint that allows Sessions to be viewed and created.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVoiceSession'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedVoiceSession'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVoiceSession'
+      security:
+      - basicAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSession'
+          description: ''
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    tokenAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Token
+  schemas:
+    AuthToken:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        token:
+          type: string
+          readOnly: true
+      required:
+      - username
+      - password
+    DiaryEntry:
+      type: object
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+        product:
+          type: integer
+        quantity:
+          type: number
+          format: float
+          minimum: 0
+        unit:
+          type: integer
+          nullable: true
+        nutritional_information:
+          type: array
+          items:
+            $ref: '#/components/schemas/NutritionalInformation'
+          readOnly: true
+      required:
+      - product
+      - quantity
+    NutritionalInformation:
+      type: object
+      properties:
+        quantity:
+          type: number
+          format: float
+        nutrient:
+          $ref: '#/components/schemas/Nutrient'
+      required:
+      - quantity
+      - nutrient
+    Nutrient:
+      type: object
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+        unit:
+          type: integer
+          nullable: true
+        rank:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - name
+    PatchedDiaryEntry:
+      type: object
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+        product:
+          type: integer
+        quantity:
+          type: number
+          format: float
+          minimum: 0
+        unit:
+          type: integer
+          nullable: true
+        nutritional_information:
+          type: array
+          items:
+            $ref: '#/components/schemas/NutritionalInformation'
+          readOnly: true
+    FoodGroup:
+      type: object
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+      required:
+      - name
+    FoodProduct:
+      type: object
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        food_source:
+          type: string
+          nullable: true
+        default_unit:
+          type: integer
+          nullable: true
+        default_quantity:
+          type: number
+          format: float
+          description: Determines the quantity in base units of 1 product.
+          minimum: 0
+        food_group:
+          type: integer
+          nullable: true
+        nutrients:
+          type: array
+          items:
+            $ref: '#/components/schemas/FoodProductNutrient'
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/FoodProductUnit'
+      required:
+      - full_name
+      - default_quantity
+      - nutrients
+      - units
+    FoodProductNutrient:
+      type: object
+      properties:
+        quantity:
+          type: number
+          format: float
+          minimum: 0
+        nutrient:
+          type: integer
+      required:
+      - quantity
+      - nutrient
+    FoodProductUnit:
+      type: object
+      properties:
+        unit:
+          type: integer
+          nullable: true
+        multiplier:
+          type: number
+          format: float
+          description: "Determines the base unit quantity of 1 of this unit, \n  \
+            \                                 i.e. 1 'glass' of milk is <multiplier>\
+            \ grams"
+          minimum: 0
+        description:
+          type: string
+          nullable: true
+          maxLength: 255
+        modifier:
+          type: string
+          nullable: true
+          maxLength: 255
+      required:
+      - multiplier
+    Unit:
+      type: object
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: i.e. gram
+        name_plural:
+          type: string
+          readOnly: true
+        short_name:
+          type: string
+          description: i.e. g
+        is_base:
+          type: boolean
+          description: "Determines whether a unit is a base unit. \n             \
+            \                     Base units are units for which all nutrients for\
+            \ a product are defined.\n                                  For instance\
+            \ Bread contains 200 kcal per 100 base units. \n                     \
+            \             In this case, base unit is grams.\n                    \
+            \              Try to avoid defining multiple base units for one quantity."
+        is_constant:
+          type: boolean
+          description: "Determines whether a unit is constant. \n                \
+            \                                    100 ml is the same for every product,\
+            \ 1 portion is not."
+        parent:
+          type: integer
+          nullable: true
+        base_unit_multiplier:
+          type: number
+          format: float
+          description: "The multiplier to convert this unit to it's parent\n     \
+            \                                                       To compare, 1\
+            \ cup is 236 ml, so for the unit 'cup', \n                           \
+            \                                 the base unit multiplier will be 236"
+          minimum: 0
+      required:
+      - name
+      - short_name
+    VoiceSession:
+      type: object
+      properties:
+        pk:
+          type: string
+          format: uuid
+          readOnly: true
+        user_date:
+          type: string
+          format: date
+        user_time:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceSessionItem'
+      required:
+      - user_date
+      - user_time
+      - items
+    VoiceSessionItem:
+      type: object
+      properties:
+        created_on:
+          type: string
+          format: date-time
+          readOnly: true
+        user_created:
+          type: boolean
+          readOnly: true
+        session:
+          type: integer
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        text:
+          type: string
+          nullable: true
+        data:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+    PatchedVoiceSession:
+      type: object
+      properties:
+        pk:
+          type: string
+          format: uuid
+          readOnly: true
+        user_date:
+          type: string
+          format: date
+        user_time:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceSessionItem'
+    TypeEnum:
+      enum:
+      - user_input
+      - feedback
+      - clarification_question
+      - objects_created
+      type: string
+      readOnly: true
