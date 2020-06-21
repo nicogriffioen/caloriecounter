@@ -18,7 +18,11 @@ class VoiceSessionViewSet(viewsets.GenericViewSet,
     serializer_class = VoiceSessionSerializer
 
     def get_queryset(self):
-        user = self.request.user
+        try:
+            user = self.request.user
+        except AttributeError as e:
+            return VoiceSession.objects.none()
+
         return VoiceSession.objects.prefetch_related('items').filter(user=user)
 
     def perform_create(self, serializer):

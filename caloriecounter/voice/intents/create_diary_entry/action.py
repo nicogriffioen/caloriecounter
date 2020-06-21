@@ -1,11 +1,11 @@
 from datetime import time, date, datetime
 
-from django.contrib.postgres.search import SearchVector, TrigramDistance
+from django.contrib.postgres.search import SearchVector, TrigramDistance, SearchQuery, SearchRank
 from django.db.models import Q
 
 from caloriecounter.diary.api.serializers import DiaryEntrySerializer
 from caloriecounter.diary.models import DiaryEntry
-from caloriecounter.food.models import FoodProduct, Unit, FoodProductSearchCacheItem
+from caloriecounter.food.models import FoodProduct, Unit, FoodProductCommonName
 from caloriecounter.voice.models import VoiceSessionItem, VoiceSession
 
 from . import utils
@@ -49,7 +49,7 @@ def perform(doc, session : VoiceSession):
     return items
 
 
-def get_diary_entry(food_item, session : VoiceSession):
+def get_diary_entry(food_item, session: VoiceSession):
     # return {
     #     'quantity': str(number_of_items),
     #     'unit': str(unit_of_items),
@@ -58,46 +58,52 @@ def get_diary_entry(food_item, session : VoiceSession):
     #     'extra': str(item_modifier),
     # }
 
-    # Try to get aproduct in a few different ways:
+    # Try to get a product in a few different ways:
     # 1. Find the product in the FoodProductSearchCache (High probability of matching a common food.)
     # 2. Find the product in the sr_legacy_food and survey_fndds_food group.
     # 3. Find the product in all FoodProducts.
 
-    quantity = float(food_item.get('quantity'))
-
-    unit = Unit.objects.annotate(search=SearchVector('name', '_name_plural', 'short_name'))\
-        .filter(search=food_item.get('unit'))\
-        .first()
-
-    # 1.
+    print(food_item)
 
     try:
-        search_cache_item = FoodProductSearchCacheItem.objects.get(text__iexact= food_item.get('name'))
+        quantity = float(food_item.get('quantity'))
+    except:
+        quantity = 1
+
+    vector = SearchVector('name', '_name_plural', 'short_name')
+    query = SearchQuery(food_item.get('unit'))
+    unit = Unit.objects.annotate(rank=SearchRank(vector, query)).order_by('-rank').first()
+    product = None
+
+    # 1.
+    try:
+        search_cache_item = FoodProductCommonName.objects.get(text__iexact=food_item.get('name'))
         product = search_cache_item.food_product
-    except FoodProductSearchCacheItem.DoesNotExist:
+    except FoodProductCommonName.DoesNotExist:
         search_cache_item = None
 
     if not search_cache_item:
         try:
-            search_cache_item = FoodProductSearchCacheItem.objects\
+            search_cache_item = FoodProductCommonName.objects\
                 .get(text__iexact='{0} {1}'.format(food_item.get('extra'), food_item.get('name')))
             product = search_cache_item.food_product
-        except FoodProductSearchCacheItem.DoesNotExist:
+        except FoodProductCommonName.DoesNotExist:
             search_cache_item = None
 
     # 2.
-    product = FoodProduct.objects.annotate(
-        distance = TrigramDistance('full_name', '{0} {1}'
-                                   .format(food_item.get('name'), food_item.get('extra'))))\
-        .filter(Q(food_source='sr_legacy_food') | Q(food_source='survey_fndds_food'))\
-        .filter(full_name__istartswith = food_item.get('name')) \
-        .filter(distance__lte=0.7)\
-        .order_by('distance').first()
+    if not product:
+        product = FoodProduct.objects.annotate(
+            distance = TrigramDistance('full_name', '{0} {1}'
+                                       .format(food_item.get('name'), food_item.get('extra'))))\
+            .filter(Q(food_source='sr_legacy_food') | Q(food_source='survey_fndds_food'))\
+            .filter(full_name__istartswith= food_item.get('name')) \
+            .filter(distance__lte=0.7)\
+            .order_by('distance').first()
 
     diary_entry = DiaryEntry(user=session.user,
                              product=product,
                              quantity= quantity,
-                             unit = unit,
+                             unit=unit,
                              date=datetime.now(),
                              time=datetime.now())
 

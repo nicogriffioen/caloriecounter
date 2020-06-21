@@ -32,6 +32,8 @@ def process_session(session : VoiceSession):
                          type='feedback',
                          user_created=False,
                          data={
-                             'exception' : e
+                             'exception': str(e)
                          }).save()
+
+        raise e
 

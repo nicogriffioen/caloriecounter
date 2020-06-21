@@ -7,22 +7,22 @@ nlp = settings.LANGUAGE_MODELS['en']
 
 
 def get_unique_matches_for_food_and_quantities(doc):
+    for chunk in doc.noun_chunks:
+        print(chunk)
     matcher = Matcher(nlp.vocab)
-    # Add match ID "HelloWorld" with no callback and one pattern
-    # pattern = [{"LOWER": "is"}, {"OP": "*", "IS_PUNCT": False}, {"LOWER": "example"}]
-    patterns = []
 
+    patterns = []
     # 2 grams of chicken breast or 2 hamburgers from McDonalds
-    patterns.append([{"POS": "NUM"}, {"OP": "*", "POS": "ADJ"}, {"OP": "+", "POS": "NOUN"}, {"OP": "?", "POS": "ADP"},
-                     {"OP": "*", "POS": "ADJ"}, {"OP": "*", "POS": "NOUN"}])
+    patterns.append([{"POS": "NUM"}, {"OP": "*", "POS": "ADJ"}, {"OP": "+", "POS": {"IN": ["NOUN", "PROPN"]}}, {"OP": "?", "POS": "ADP"},
+                     {"OP": "*", "POS": "ADJ"}, {"OP": "*", "POS": {"IN": ["NOUN", "PROPN"]}}])
 
     # A slice of bread
     patterns.append(
-        [{"POS": "DET", "OP": "?"}, {"OP": "*", "POS": "ADJ"}, {"OP": "+", "POS": "NOUN"}, {"OP": "?", "POS": "ADP"},
-         {"OP": "*", "POS": "ADJ"}, {"OP": "*", "POS": "NOUN"}])
+        [{"POS": "DET", "OP": "?"}, {"OP": "*", "POS": "ADJ"}, {"OP": "+", "POS": {"IN": ["NOUN", "PROPN"]}}, {"OP": "?", "POS": "ADP"},
+         {"OP": "*", "POS": "ADJ"}, {"OP": "*", "POS": {"IN": ["NOUN", "PROPN"]}}])
 
     # A raw broccoli stalk
-    # patterns.append([{"POS": "DET"}, {"OP" : "?", "POS": "ADJ"}, {"OP" : "+", "POS": "NOUN"}])
+    patterns.append([{"POS": "DET"}, {"OP": "*", "POS": "ADJ"}, {"OP": "+", "POS": {"IN": ["NOUN", "PROPN"]}}])
 
     matcher.add("quantities-of-food", None, *patterns)
 
@@ -48,11 +48,14 @@ def get_unique_matches_for_food_and_quantities(doc):
 def get_food_item_in_span(span):
     number_of_items = ' '.join([str(token) for token in span if token.pos_ == "NUM"])
 
-    unit_of_items = span[1] if span[1].ent_type_ == "QUANTITY" else None
+    unit_of_items = ''
 
-    unit_modifier = []
+    if len(span) > 1:
+        unit_of_items = span[1] if span[1].ent_type_ == "QUANTITY" else ''
 
-    if unit_of_items is None:
+    unit_modifiers = []
+
+    if unit_of_items is '':
         if len(span) > 2 and str(span[1]) in ['g', 'ml']:
             span[1].ent_type_ = "QUANTITY"
             unit_of_items = span[1]
@@ -64,14 +67,19 @@ def get_food_item_in_span(span):
                 unit_of_items = span[i - 1]
                 break
             else:
-                unit_modifier.append(str(span[i - 1]))
+                unit_modifiers.append(span[i - 1])
             i = i + 1
 
-    unit_modifier = ' '.join(unit_modifier)
+    item_names = [token for token in span if (token.pos_ == "NOUN" or token.pos_ == "PROPN") and token.ent_type_ != "QUANTITY"]
 
-    item_name = ' '.join([token.lemma_ for token in span if token.pos_ == "NOUN" and token.ent_type_ != "QUANTITY"])
+    item_modifier = ' '.join([token.lemma_ for token in span if token not in unit_modifiers and token not in item_names and token.pos_ == "ADJ" and token.ent_type_ != "QUANTITY"])
 
-    item_modifier = ' '.join([token.lemma_ for token in span if token.pos_ == "ADJ" and token.ent_type_ != "QUANTITY"])
+    unit_modifier = ' '.join(str(x) for x in unit_modifiers if x not in item_names and str(x) != str(unit_of_items))
+
+    item_name = ' '.join(token.lemma_ for token in item_names)
+
+    # if unit_of_items is None:
+    #    unit_of_items = ''
 
     return {
         'quantity': str(number_of_items),
@@ -79,4 +87,5 @@ def get_food_item_in_span(span):
         'unit_extra': str(unit_modifier),
         'name': str(item_name),
         'extra': str(item_modifier),
+        'raw': str(span)
     }
