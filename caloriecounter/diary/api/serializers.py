@@ -5,6 +5,7 @@ from rest_framework.fields import SerializerMethodField
 from django.utils.translation import ugettext_lazy as _
 
 from caloriecounter.diary.models import DiaryEntry
+from caloriecounter.food.api.serializers import NutritionalInformationSerializer
 
 
 class DiaryEntrySerializer(serializers.ModelSerializer):
@@ -12,7 +13,7 @@ class DiaryEntrySerializer(serializers.ModelSerializer):
         model = DiaryEntry
         fields = ['pk', 'date', 'time', 'product', 'quantity', 'unit', 'nutritional_information']
 
-    nutritional_information = SerializerMethodField()
+    nutritional_information = NutritionalInformationSerializer(many=True, read_only=True)
 
     def validate(self, data):
         errors = {}
@@ -29,27 +30,27 @@ class DiaryEntrySerializer(serializers.ModelSerializer):
             product.get_quantity_in_default_unit(quantity, unit)
         except ValueError:
             errors['unit'] = ValidationError(_('Unknown unit "{unit}" for product "{product}"')
-                                             .format(unit = unit, product = product),
+                                             .format(unit=unit, product=product),
                                              code='unit_does_not_match_product')
 
         if not 'unit' in data and product.default_quantity == 0:
             errors['product'] = ValidationError(
                 _('Cannot convert {quantity} {product} to {unit} of {product}').format(
-                    quantity = quantity,
-                    product= product,
-                    unit = product.default_unit),
+                    quantity=quantity,
+                    product=product,
+                    unit=product.default_unit),
                 code='can_not_convert_quantity_of_product_to_unit')
 
         if errors:
             raise ValidationError(errors)
         return data
 
-    def get_nutritional_information(self, obj : DiaryEntry):
+    def get_nutritional_information(self, obj: DiaryEntry):
         list = []
         for (quantiy, nutrient) in obj.nutritional_information:
             list.append({
-                'quantity' : quantiy,
-                'nutrient' : nutrient.pk
+                'quantity': quantiy,
+                'nutrient': nutrient.pk
             })
 
         return list

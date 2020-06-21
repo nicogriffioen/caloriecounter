@@ -5,7 +5,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from caloriecounter.food.models import FoodProduct, Unit, FoodProductNutrient
+from caloriecounter.food.models import FoodProduct, Unit, FoodProductNutrient, Nutrient, FoodProductUnit
 from caloriecounter.user.models import User
 
 
@@ -23,6 +23,18 @@ class DiaryEntryManager(models.Manager):
                               'product__foodproductnutrient_set__nutrient')
 
 
+class NutritionalInformation:
+    quantity: float
+    nutrient: Nutrient
+
+    def __init__(self, quantity: float, nutrient: Nutrient):
+        self.quantity = quantity
+        self.nutrient = nutrient
+
+    def __str__(self):
+        return '{0} {1}'.format(self.quantity, self.nutrient)
+
+
 class DiaryEntry(models.Model):
     class Meta:
         ordering = ['-date', 'time']
@@ -31,16 +43,20 @@ class DiaryEntry(models.Model):
 
     objects = DiaryEntryManager()
 
-    user = models.ForeignKey(to=User, verbose_name=_('user'), on_delete=models.CASCADE, blank=False, editable=False)
+    user = models.ForeignKey(to=User, verbose_name=_('user'), on_delete=models.CASCADE, blank=False, editable=True)
 
     created_on = models.DateTimeField(verbose_name=_('created on'), auto_now_add=True)
 
-    date = models.DateField(_("entry Date"), blank=False, default=datetime.now)
-    time = models.TimeField(_("entry Time"), blank=False, default=datetime.now)
+    date = models.DateField(_("entry date"), blank=False, default=datetime.now)
+    time = models.TimeField(_("entry time"), blank=False, default=datetime.now)
+
+    title = models.CharField(verbose_name=_('title'), blank=True, null=True, help_text=_('A custom title for this diary entry.'), max_length=255)
 
     product = models.ForeignKey(to=FoodProduct, on_delete=models.CASCADE, blank=False, null=False)
     quantity = models.FloatField(verbose_name=_('quantity'), validators=[MinValueValidator(0),])
+
     unit = models.ForeignKey(verbose_name=_('unit'), to=Unit, on_delete=models.SET_NULL, null=True, blank=True)
+    portion = models.ForeignKey(verbose_name=_('portion'), to=FoodProductUnit, on_delete=models.SET_NULL, null=True, blank=True)
 
     # Return a list of tuples containing the unit, and the quantity of each Nutrient for this diary entry.
     @property
@@ -51,10 +67,16 @@ class DiaryEntry(models.Model):
             return []
 
         quantity = self.quantity
+
+        if self.portion:
+            unit = self.portion.unit
+        else:
+            unit = self.unit
+
         list_of_nutrients = []
-        if self.unit:
+        if unit:
             try:
-                quantity = self.product.get_quantity_in_default_unit(self.quantity, self.unit)
+                quantity = self.product.get_quantity_in_default_unit(self.quantity, unit)
             except ValueError:
                 quantity = 0
         else:
@@ -62,13 +84,18 @@ class DiaryEntry(models.Model):
 
         for product_nutrient in self.product.foodproductnutrient_set.all():
             if quantity == 0:
-                list_of_nutrients.append((None, product_nutrient.nutrient))
+                list_of_nutrients.append(NutritionalInformation(None, product_nutrient.nutrient))
             else:
-                list_of_nutrients.append((quantity * (product_nutrient.quantity / 100), product_nutrient.nutrient))
+                list_of_nutrients.append(NutritionalInformation(quantity * (product_nutrient.quantity / 100),
+                                                                product_nutrient.nutrient))
 
         return list_of_nutrients
 
     def clean(self):
+        if self.portion and self.unit:
+            error = _('Only unit or portion can be set, not both')
+            raise ValidationError({'portion': error, 'unit': error})
+
         super().clean()
 
     def clean_fields(self, exclude=None):
@@ -98,6 +125,10 @@ class DiaryEntry(models.Model):
                         product= self.product,
                         unit = self.product.default_unit),
                     code='can_not_convert_quantity_of_product_to_unit')
+
+        if self.portion and self.portion.product != self.product:
+            errors['portion'] = ValidationError(_('Unknown portion for product .'.format(self.product)))
+
         if errors:
             raise ValidationError(errors)
 
