@@ -10,12 +10,13 @@ from django.utils.translation import ugettext_lazy as _
 class Unit(models.Model):
     class Meta:
         ordering = ['-is_base', '-is_constant', 'base_unit_multiplier']
-    name = models.TextField(verbose_name=_('name'), help_text=_('i.e. gram'), unique=True)
+
+    name = models.TextField(verbose_name=_('name'), help_text=_('i.e. gram'), unique=True, null=True, blank=True)
     _name_plural = models.TextField(verbose_name=_('plural name'),
                                     help_text=_('i.e. grams. Leave empty to use a programmatically set plural'),
                                     null=True, blank=True)
 
-    short_name = models.TextField(verbose_name=_('Short name'), help_text=_('i.e. g'), null=False, blank=False)
+    short_name = models.TextField(verbose_name=_('Short name'), help_text=_('i.e. g'), null=True, blank=True)
 
     is_base = models.BooleanField(verbose_name=_('base unit'),
                                   help_text=_("""Determines whether a unit is a base unit. 
@@ -25,10 +26,11 @@ class Unit(models.Model):
                                   Try to avoid defining multiple base units for one quantity."""),
                                   default=False)
 
-    is_constant = models.BooleanField(verbose_name=_('constant'),
+    is_constant = models.BooleanField(verbose_name=_('type'),
                                       help_text=_("""Determines whether a unit is constant. 
                                                     100 ml is the same for every product, 1 portion is not."""),
-                                      default=True)
+                                      default=True,
+                                      choices=[(True, _('unit')), (False, _('portion'))])
 
     parent = models.ForeignKey(verbose_name=_('parent unit'),
                                to='self',
@@ -84,7 +86,8 @@ class Unit(models.Model):
     def clean(self, *args, **kwargs):
         errors = []
         if self.is_base and self.parent:
-            errors.append(ValidationError(_('Unit can not both be a base unit and have a parent defined.'), code='unit_both_base_and_child'))
+            errors.append(ValidationError(_('Unit can not both be a base unit and have a parent defined.'),
+                                          code='unit_both_base_and_child'))
 
         if not self.is_constant and self.is_base:
             errors.append(ValidationError(_('Base units must be constant.'), code='base_unit_not_constant'))
@@ -138,6 +141,13 @@ class FoodProduct(models.Model):
                                      null=True,
                                      related_name='default_products')
 
+    grams_per_ml = models.FloatField(verbose_name=_('Grams in a ml'),
+                                     help_text=_(
+                                         'Number of grams in a ml of this product. E.g. a ml of milk is 1.035 gr.'),
+                                     default=0,
+                                     validators=[MinValueValidator(0), ]
+                                     )
+
     default_quantity = models.FloatField(verbose_name=_('default quantity'),
                                          help_text=_('Determines the quantity in base units of 1 product.'),
                                          validators=[MinValueValidator(0), ])
@@ -168,9 +178,15 @@ class FoodProduct(models.Model):
         if unit.base_unit == self.default_unit:
             return unit.convert_to_base(quantity)
 
-        # 4. food_product_unit has a unit that is either the parent or a unit with a shared parent to current unit.
-        food_product_unit = FoodProductUnit.objects.filter(product=self, unit__is_constant=True)\
-            .filter(Q(unit__parent=unit.base_unit) | Q(unit = unit.base_unit))\
+        # 4. food_product has an explicitly defined number of grams per ml
+        # TODO: We should use volume/mass over a custom base unit. (Products are either defined per 100 ml or per 100 gr.)
+        if self.grams_per_ml != 0:
+            if self.default_unit.name == 'gram' and unit.base_unit.name == 'milliliter':
+                return unit.convert_to_base(quantity) * self.grams_per_ml
+
+        # 5. food_product_unit has a unit that is either the parent or a unit with a shared parent to current unit.
+        food_product_unit = FoodProductUnit.objects.filter(product=self, unit__is_constant=True) \
+            .filter(Q(unit__parent=unit.base_unit) | Q(unit=unit.base_unit)) \
             .first()
 
         if food_product_unit is not None:
@@ -205,7 +221,7 @@ class Nutrient(models.Model):
 # Through model for nutrients per food product, containing the quantity.
 class FoodProductNutrient(models.Model):
     class Meta:
-        unique_together = [('product', 'nutrient'),]
+        unique_together = [('product', 'nutrient'), ]
         ordering = ['-nutrient__rank']
         indexes = [
             models.Index(fields=['product', 'nutrient']),
@@ -213,7 +229,7 @@ class FoodProductNutrient(models.Model):
         pass
 
     product = models.ForeignKey(verbose_name=_('product'), to=FoodProduct, on_delete=models.CASCADE)
-    nutrient = models.ForeignKey(verbose_name=('nutrient'), to=Nutrient, on_delete=models.CASCADE)
+    nutrient = models.ForeignKey(verbose_name=_('nutrient'), to=Nutrient, on_delete=models.CASCADE)
 
     quantity = models.FloatField(verbose_name=_('quantity'), validators=[MinValueValidator(0), ])
 
@@ -234,6 +250,11 @@ class FoodProductUnit(models.Model):
                              on_delete=models.SET_NULL,
                              null=True, blank=True)
 
+    quantity = models.FloatField(verbose_name=_('quantity'),
+                                 help_text=_('The default quantity of this portion.'),
+                                 validators=[MinValueValidator(1), ],
+                                 default=1)
+
     multiplier = models.FloatField(verbose_name=_('multiplier'),
                                    help_text=_("""Determines the base unit quantity of 1 of this unit, 
                                    i.e. 1 'glass' of milk is <multiplier> grams"""),
@@ -244,55 +265,58 @@ class FoodProductUnit(models.Model):
     modifier = models.CharField(verbose_name=_('Portion modifier'), max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return '{0} of {1} ({2} {3})'.format(self.unit, self.product, self.multiplier, self.product.default_unit)
+        unit_name = ', '.join([str(name) for name in [self.unit, self.description, self.modifier] if name is not None])
+        return '{0} of {3} ({4} {5})'.format(unit_name, self.description, self.modifier, self.product, self.multiplier, self.product.default_unit)
 
     def clean(self, *args, **kwargs):
-        errors = []
-
-        # Check if we can find an existing link between this unit, and the product's default unit
-        if self.unit.is_constant:
-            try:
-                actual_conversion = self.unit.convert_to_unit(1, self.product.default_unit)
-                errors.append(ValidationError(_("""1 %(unit)s is already defined as %(quantity)s %(unit2)s. 
-                                                You can only specify conversions 
-                                                of units that do not relate to each other, 
-                                                like grams and milliliters."""),
-                                              code='unit_already_defined_for_product',
-                                              params= {
-                                                  'unit' : self.unit,
-                                                  'quantity' : actual_conversion,
-                                                  'unit2' : self.product.default_unit
-                                              }))
-            except ValueError:
-                pass
-
-            try:
-                actual_conversion = self.product.get_quantity_in_default_unit(1, self.unit)
-                errors.append(ValidationError(_("""1 %(unit)s is already implicitly defined as %(quantity)s %(unit2)s. 
-                                                There is already a related unit defined on this product."""),
-                                              code='unit_already_implicitly_defined_for_product',
-                                              params= {
-                                                  'unit' : self.unit,
-                                                  'quantity' : actual_conversion,
-                                                  'unit2' : self.product.default_unit
-                                              }))
-            except ValueError:
-                pass
-
-        if len(errors) > 0:
-            raise ValidationError({
-                NON_FIELD_ERRORS: errors,
-            })
-
+        # errors = []
+        #
+        # # Check if we can find an existing link between this unit, and the product's default unit
+        # if self.unit.is_constant:
+        #     try:
+        #         actual_conversion = self.unit.convert_to_unit(1, self.product.default_unit)
+        #         errors.append(ValidationError(_("""1 %(unit)s is already defined as %(quantity)s %(unit2)s.
+        #                                         You can only specify conversions
+        #                                         of units that do not relate to each other,
+        #                                         like grams and milliliters."""),
+        #                                       code='unit_already_defined_for_product',
+        #                                       params= {
+        #                                           'unit' : self.unit,
+        #                                           'quantity' : actual_conversion,
+        #                                           'unit2' : self.product.default_unit
+        #                                       }))
+        #     except ValueError:
+        #         pass
+        #
+        #     try:
+        #         actual_conversion = self.product.get_quantity_in_default_unit(1, self.unit)
+        #         errors.append(ValidationError(_("""1 %(unit)s is already implicitly defined as %(quantity)s %(unit2)s.
+        #                                         There is already a related unit defined on this product."""),
+        #                                       code='unit_already_implicitly_defined_for_product',
+        #                                       params={
+        #                                           'unit': self.unit,
+        #                                           'quantity': actual_conversion,
+        #                                           'unit2': self.product.default_unit
+        #                                       }))
+        #     except ValueError:
+        #         pass
+        #
+        # if len(errors) > 0:
+        #     raise ValidationError({
+        #         NON_FIELD_ERRORS: errors,
+        #     })
+        #
         super(FoodProductUnit, self).clean(*args, **kwargs)
 
 
-class FoodProductSearchCacheItem(models.Model):
+class FoodProductCommonName(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['text']),
         ]
 
-    text = models.CharField(verbose_name=_('Food product'), max_length=255, unique=True)
+    text = models.CharField(verbose_name=_('name'), max_length=255, unique=True)
+    text_plural = models.CharField(verbose_name=_('name plural'), max_length=255, null=True, blank=True)
 
-    food_product = models.ForeignKey(verbose_name=_('Food product'), to=FoodProduct, on_delete=models.CASCADE)
+    food_product = models.ForeignKey(verbose_name=_('Food product'), to=FoodProduct,
+                                     related_name='common_names', on_delete=models.CASCADE)

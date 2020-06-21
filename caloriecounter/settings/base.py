@@ -41,6 +41,7 @@ DEFAULT_APPS = [
 
 THIRD_PARTY_APPS = [
     'django_filters',
+    'drf_spectacular',
     'rest_framework',
     'rest_framework.authtoken',
 ]
@@ -62,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'request_logging.middleware.LoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'caloriecounter.urls'
@@ -130,28 +132,32 @@ LOGGING = {
     'disable_existing_loggers': False,
     'handlers': {
         'console': {
-            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-        }
+        },
     },
-    # 'loggers': {
-    #     'django.db.backends': {
-    #         'handlers': ['console'],
-    #         'level': 'DEBUG',
-    #     },
-    # }
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # change debug level as appropiate
+            'propagate': False,
+        },
+    },
 }
 
 
+import django_filters.rest_framework.backends
 # Django REST Framework settings
 REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ],
+
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
@@ -162,17 +168,12 @@ REST_FRAMEWORK = {
 import spacy
 
 # load any spaCy models that are installed
-# This takes some time to load so doing it here and this should improve performance
+# This takes some time to load so doing it here instead of ad-hoc will increase performance.
+# The best place to do this would be in the voice AppConfig's ready method, but I haven't figured out a proper way to
+# both customize which models are loaded through settings, and sharing the loaded models within the app
 SUPPORTED_LANGUAGES = ['en']
 
 LANGUAGE_MODELS = {}
-
-for language in SUPPORTED_LANGUAGES:
-    try:
-        LANGUAGE_MODELS[language] = spacy.load(language)
-    except OSError:
-        print('Warning: model {} not found. Run python3 -m spacy download {} and try again.'.format(language,language))
-
 LANGUAGE_MODELS['en'] = spacy.load('en_core_web_sm')
 
 # this is used to display the language name

@@ -3,11 +3,6 @@ from django.contrib import admin
 from .models import *
 
 
-class UnitAdmin(admin.ModelAdmin):
-    search_fields = ['name', 'short_name']
-    list_display = ('name', 'base_unit_multiplier', 'parent', )
-
-
 class NutrientAdmin(admin.ModelAdmin):
     search_fields = ['name']
 
@@ -16,21 +11,39 @@ class FoodGroupAdmin(admin.ModelAdmin):
     search_fields = ['name']
 
 
+class FoodProductUnitAdmin(admin.ModelAdmin):
+    list_filter = ['unit']
+    search_fields = ['unit']
+    autocomplete_fields = ['unit', 'product']
+
+
 class FoodProductNutrientInlineAdmin(admin.TabularInline):
     model = FoodProductNutrient
-    autocomplete_fields = ['nutrient',]
+    autocomplete_fields = ['nutrient', 'product']
 
 
 class FoodProductUnitInlineAdmin(admin.TabularInline):
     model = FoodProductUnit
-    autocomplete_fields = ['unit', ]
+    autocomplete_fields = ['unit', 'product']
+
+
+class FoodProductSynonymInlineAdmin(admin.TabularInline):
+    model = FoodProductCommonName
+
+
+class UnitAdmin(admin.ModelAdmin):
+    search_fields = ['name', 'short_name']
+    list_display = ('name', 'base_unit_multiplier', 'parent', )
+    list_filter = ('is_constant',)
+
+    inlines = [FoodProductUnitInlineAdmin]
 
 
 class FoodProductAdmin(admin.ModelAdmin):
     list_display = ('full_name', 'food_source', 'food_group', 'default_unit')
     list_filter = ('food_source', 'food_group')
     search_fields = ('full_name',)
-    inlines = (FoodProductUnitInlineAdmin, FoodProductNutrientInlineAdmin)
+    inlines = (FoodProductUnitInlineAdmin, FoodProductNutrientInlineAdmin, FoodProductSynonymInlineAdmin)
 
     list_select_related = ('food_group', 'default_unit')
 
@@ -42,7 +55,7 @@ class FoodProductAdmin(admin.ModelAdmin):
     get_nutrients.short_description = 'Nutrients (per 100)'
 
 
-class FoodProductSearchCacheItemAdmin(admin.ModelAdmin):
+class FoodProductSynonymAdmin(admin.ModelAdmin):
     search_fields = ['text']
     list_display = ['text', 'food_product']
     ordering = ['text']
@@ -53,6 +66,5 @@ admin.site.register(Unit, UnitAdmin)
 admin.site.register(Nutrient, NutrientAdmin)
 admin.site.register(FoodGroup, FoodGroupAdmin)
 admin.site.register(FoodProduct, FoodProductAdmin)
-admin.site.register(FoodProductSearchCacheItem, FoodProductSearchCacheItemAdmin)
-
-
+admin.site.register(FoodProductCommonName, FoodProductSynonymAdmin)
+admin.site.register(FoodProductUnit, FoodProductUnitAdmin)
